@@ -32,14 +32,6 @@ export const ControlToggle: React.FC<ControlToggleProps> = ({ label, isChecked, 
         `}>
            <div className={`w-2 h-2 rounded-full ${isChecked ? 'bg-white' : 'bg-zinc-400'}`} />
         </div>
-        
-        {/* State Label */}
-        <div className={`absolute w-full text-center text-[10px] font-mono font-bold pointer-events-none transition-opacity duration-300 ${isChecked ? 'opacity-100 text-amber-600 dark:text-amber-500' : 'opacity-0'}`} style={{ transform: 'translateY(20px)' }}>
-          ON
-        </div>
-        <div className={`absolute w-full text-center text-[10px] font-mono font-bold pointer-events-none transition-opacity duration-300 ${!isChecked ? 'opacity-100 text-zinc-500 dark:text-zinc-600' : 'opacity-0'}`} style={{ transform: 'translateY(20px)' }}>
-          OFF
-        </div>
       </div>
     </div>
   );

@@ -47,7 +47,6 @@ const App = () => {
   const [scoreTrend, setScoreTrend] = useState<'up' | 'down' | 'neutral'>('neutral');
   const [showSettings, setShowSettings] = useState(false);
   const [isBpmPending, setIsBpmPending] = useState(false);
-  const [measureVersion, setMeasureVersion] = useState(0);
   
   // Countdown State
   const [countDownValue, setCountDownValue] = useState<number | null>(null);
@@ -86,16 +85,6 @@ const App = () => {
   useEffect(() => {
     audioService.setTimeSignature(state.timeSignature);
   }, [state.timeSignature]);
-
-  // --- Detect Measure Structure Changes ---
-  // Increment version when structure changes while playing to trigger smooth transitions
-  useEffect(() => {
-    // Only increment if playing and structure actually changed (not on initial mount or play start)
-    if (state.isPlaying) {
-      setMeasureVersion(v => v + 1);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.timeSignature, state.subdivision, state.selectedRudimentId]);
 
   // --- Derived State (The Measure) ---
   const currentMeasure = useMemo(() => {
@@ -248,15 +237,8 @@ const App = () => {
     setState(s => ({ ...s, bpm: clamped }));
     audioService.setBpm(clamped);
     
+    // If currently playing, the BPM change is pending until next measure
     if (state.isPlaying) {
-      // Calculate next beat boundary for faster response
-      const currentTime = audioService.getCurrentTime();
-      const spb = 60 / measureSync.bpm; // Use current sync BPM for calculation
-      const beatsElapsed = (currentTime - measureSync.startTime) / spb;
-      const nextBeatTime = measureSync.startTime + (Math.ceil(beatsElapsed) * spb);
-      
-      // Update sync at next beat (not measure) for better responsiveness
-      setMeasureSync({ bpm: clamped, startTime: nextBeatTime });
       setIsBpmPending(true);
     } else {
       // If stopped, update measure sync immediately so visuals match dial
@@ -279,7 +261,7 @@ const App = () => {
     SUBDIVISIONS.find(s => s.value === state.audioSubdivision)?.label || '1/4';
 
   return (
-    <div className={`w-full min-h-screen flex flex-col items-center py-6 px-4 select-none overflow-x-hidden transition-colors duration-300 ${state.theme === 'dark' ? 'bg-[#09090b] text-zinc-100' : 'bg-white text-zinc-900'}`}>
+    <div className={`w-full h-screen flex flex-col items-center py-6 px-4 select-none overflow-hidden transition-colors duration-300 ${state.theme === 'dark' ? 'bg-[#09090b] text-zinc-100' : 'bg-white text-zinc-900'}`}>
       
       {/* 0. GPU BACKGROUND LAYER (Optional Full Screen) */}
       {state.showBackgroundVisuals && (
@@ -383,7 +365,6 @@ const App = () => {
               isPlaying={state.isPlaying}
               subdivision={state.subdivision}
               mirrorMode={state.mirrorMode}
-              measureVersion={measureVersion}
             />
           </div>
 

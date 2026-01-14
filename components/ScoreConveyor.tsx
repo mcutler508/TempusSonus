@@ -14,7 +14,6 @@ interface ScoreConveyorProps {
   isPlaying: boolean;
   subdivision: Subdivision;
   mirrorMode: boolean;
-  measureVersion: number;
 }
 
 export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
@@ -22,8 +21,7 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
   measureSync,
   isPlaying,
   subdivision,
-  mirrorMode,
-  measureVersion
+  mirrorMode
 }) => {
   const [playheadProgress, setPlayheadProgress] = useState(0);
   const [activeNoteIndex, setActiveNoteIndex] = useState(-1);
@@ -34,19 +32,12 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
   const activeParams = useRef<MeasureSyncData>({ startTime: 0, bpm: 100 });
   // The 'next' params are what we will switch to when time reaches nextParams.startTime
   const nextParams = useRef<MeasureSyncData | null>(null);
-  
-  // Measure transition tracking
-  const activeMeasure = useRef<Measure>(measure);
-  const nextMeasure = useRef<Measure | null>(null);
-  const prevMeasureVersion = useRef<number>(measureVersion);
 
   // Sync Props to Refs (Lookahead Queue)
   useEffect(() => {
     if (!isPlaying) {
       setPlayheadProgress(0);
       setActiveNoteIndex(-1);
-      activeMeasure.current = measure;
-      nextMeasure.current = null;
       return;
     }
 
@@ -62,26 +53,8 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
     }
   }, [measureSync, isPlaying]);
 
-  // Detect measure structure changes and queue for transition
-  useEffect(() => {
-    // Check if measure structure actually changed (different note count or time signature)
-    const structureChanged = 
-      measure.id !== activeMeasure.current.id ||
-      measure.notes.length !== activeMeasure.current.notes.length ||
-      measure.timeSignature.name !== activeMeasure.current.timeSignature.name ||
-      measureVersion !== prevMeasureVersion.current;
-
-    if (structureChanged && isPlaying) {
-      // Queue new measure for transition at next beat boundary
-      nextMeasure.current = measure;
-    } else if (!isPlaying) {
-      // If stopped, update immediately
-      activeMeasure.current = measure;
-      nextMeasure.current = null;
-    }
-
-    prevMeasureVersion.current = measureVersion;
-  }, [measure, measureVersion, isPlaying]);
+  const totalNotes = measure.notes.length;
+  const slotsPerBeat = totalNotes / measure.timeSignature.top;
 
   // Animation Loop
   const animate = () => {
@@ -91,46 +64,14 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
 
     const currentTime = audioService.getCurrentTime();
 
-    // 1. Check if we need to switch to the queued sync params (Frame Perfect Switch)
+    // 1. Check if we need to switch to the queued measure (Frame Perfect Switch)
     if (nextParams.current && currentTime >= nextParams.current.startTime) {
       activeParams.current = nextParams.current;
       nextParams.current = null;
     }
 
-    // 2. Check if we need to switch to the queued measure at beat boundary
-    if (nextMeasure.current) {
-      const currentMeasure = activeMeasure.current;
-      const slotsPerBeat = currentMeasure.notes.length / currentMeasure.timeSignature.top;
-      const measureDuration = getMeasureDuration(activeParams.current.bpm, currentMeasure.timeSignature);
-      const elapsed = currentTime - activeParams.current.startTime;
-      const safeElapsed = Math.max(0, elapsed);
-      const progress = (safeElapsed % measureDuration) / measureDuration;
-      const currentSlotIndex = Math.floor(progress * currentMeasure.notes.length);
-      const currentBeat = Math.floor(currentSlotIndex / slotsPerBeat);
-      const positionInBeat = (currentSlotIndex % slotsPerBeat) / slotsPerBeat;
-      
-      // Check if we're at the start of a beat (within first 10% of beat) for smooth transition
-      const isAtBeatBoundary = positionInBeat < 0.1;
-      
-      if (isAtBeatBoundary) {
-        // Switch to new measure, preserving beat position
-        activeMeasure.current = nextMeasure.current;
-        nextMeasure.current = null;
-        
-        // Recalculate start time to maintain visual continuity at current beat
-        const newMeasureDuration = getMeasureDuration(activeParams.current.bpm, activeMeasure.current.timeSignature);
-        const newBeatProgress = currentBeat / activeMeasure.current.timeSignature.top;
-        activeParams.current = {
-          ...activeParams.current,
-          startTime: currentTime - (newBeatProgress * newMeasureDuration)
-        };
-      }
-    }
-
-    // 3. Calculate Progress based on ACTIVE measure and params
-    const currentMeasure = activeMeasure.current;
-    const totalNotes = currentMeasure.notes.length;
-    const measureDuration = getMeasureDuration(activeParams.current.bpm, currentMeasure.timeSignature);
+    // 2. Calculate Progress based on ACTIVE params
+    const measureDuration = getMeasureDuration(activeParams.current.bpm, measure.timeSignature);
     const elapsed = currentTime - activeParams.current.startTime;
     
     // We allow negative elapsed (during lookahead pre-roll) but clamp visual to 0
@@ -185,13 +126,9 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
 
   // Helper to render a row of notes
   const renderNoteRow = (type: 'primary' | 'mirror') => {
-    const currentMeasure = activeMeasure.current;
-    const totalNotes = currentMeasure.notes.length;
-    const slotsPerBeat = totalNotes / currentMeasure.timeSignature.top;
-    
     return (
       <div className="absolute inset-0 flex items-center px-0 w-full h-full">
-        {currentMeasure.notes.map((note, idx) => {
+        {measure.notes.map((note, idx) => {
           // Logic for Inversion
           let displayHand = note.hand;
           if (type === 'mirror') {
@@ -310,25 +247,16 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
     );
   };
 
-  const currentMeasure = activeMeasure.current;
-  
   return (
     <div className="relative w-full max-w-5xl h-64 bg-white dark:bg-zinc-950/50 border-y border-zinc-200 dark:border-zinc-800 backdrop-blur-sm select-none overflow-hidden rounded-xl mx-4 shadow-xl dark:shadow-2xl transition-all duration-500">
       
       {/* 1. THE STATIONARY GRID (Shared) */}
       <div className="absolute inset-0 flex w-full h-full pointer-events-none">
-        {Array.from({ length: currentMeasure.timeSignature.top }).map((_, i) => (
+        {Array.from({ length: measure.timeSignature.top }).map((_, i) => (
           <div 
             key={`beat-${i}`} 
             className="flex-1 border-r border-zinc-200 dark:border-zinc-800/60 h-full last:border-r-0 relative group"
           >
-            {/* Beat Marker - Large Background Number */}
-            <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-               <span className="text-[8rem] leading-none font-black text-zinc-100 dark:text-white/[0.03] select-none pointer-events-none translate-y-2">
-                 {i + 1}
-               </span>
-            </div>
-
             {/* Micro Grid (Always On) */}
             {renderMicroGrid()}
             
