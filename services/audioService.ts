@@ -29,6 +29,7 @@ class AudioService {
   private pendingAudioSubdivision: Subdivision | null = null;
   private pendingTimeSignature: TimeSignature | null = null;
   private pendingBpm: number | null = null;
+  private pendingBpmAtBeat: boolean = false; // Flag for beat-level BPM changes
   
   // Track position in measure
   private currentNoteNumber = 0; 
@@ -48,10 +49,13 @@ class AudioService {
 
   setBpm(bpm: number) {
     if (this.isPlaying) {
+      // Apply at next beat instead of next measure for faster response
       this.pendingBpm = bpm;
+      this.pendingBpmAtBeat = true; // Flag for beat-level change
     } else {
       this.currentBpm = bpm;
       this.pendingBpm = null;
+      this.pendingBpmAtBeat = false;
     }
   }
 
@@ -97,6 +101,7 @@ class AudioService {
     this.pendingAudioSubdivision = null;
     this.pendingTimeSignature = null;
     this.pendingBpm = null;
+    this.pendingBpmAtBeat = false;
 
     // Set start time slightly in the future
     this.startTime = this.ctx!.currentTime + 0.1;
@@ -138,16 +143,24 @@ class AudioService {
   }
 
   private scheduleNote(time: number) {
-    // 1. DETERMINE IF DOWNBEAT AND APPLY CHANGES
-    // We check against the settings that were active for the *previous* note to determine loop wrap
-    const slotsPerBeat = this.getSlotsPerBeat();
+    // 1. CALC METADATA FIRST (before applying changes)
+    const currentSlotsPerBeat = this.getSlotsPerBeat();
     const beatsPerMeasure = this.currentTimeSignature.top;
-    const totalSlots = beatsPerMeasure * slotsPerBeat;
-
-    // If we wrapped around (or started), we are at the downbeat
-    // Note: currentNoteNumber increments *after* this function in nextNote(), so we check 0 or Mod
+    const totalSlots = beatsPerMeasure * currentSlotsPerBeat;
+    
+    const currentSlotIndex = this.currentNoteNumber % totalSlots;
+    const isBeat = currentSlotIndex % currentSlotsPerBeat === 0;
+    const beatIndex = Math.floor(currentSlotIndex / currentSlotsPerBeat);
     const isDownbeat = (this.currentNoteNumber % totalSlots) === 0;
 
+    // 2. APPLY PENDING BPM AT BEAT BOUNDARY (faster response)
+    if (this.pendingBpm && this.pendingBpmAtBeat && isBeat && this.currentNoteNumber > 0) {
+      this.currentBpm = this.pendingBpm;
+      this.pendingBpm = null;
+      this.pendingBpmAtBeat = false;
+    }
+
+    // 3. APPLY OTHER CHANGES AT MEASURE BOUNDARY (time signature, subdivision)
     if (this.currentNoteNumber > 0 && isDownbeat) {
       // Apply pending changes exactly at the measure boundary
       if (this.pendingAudioSubdivision) {
@@ -160,7 +173,8 @@ class AudioService {
         this.pendingTimeSignature = null;
       }
 
-      if (this.pendingBpm) {
+      // Apply BPM at measure boundary if it wasn't applied at beat (fallback)
+      if (this.pendingBpm && !this.pendingBpmAtBeat) {
         this.currentBpm = this.pendingBpm;
         this.pendingBpm = null;
       }
@@ -170,25 +184,24 @@ class AudioService {
       this.currentNoteNumber = 0;
     }
 
-    // 2. CALC METADATA
-    // Re-calculate after potential config change
-    const currentSlotsPerBeat = this.getSlotsPerBeat();
-    const currentTotalSlots = this.currentTimeSignature.top * currentSlotsPerBeat;
+    // 4. RECALCULATE METADATA AFTER POTENTIAL CONFIG CHANGES
+    const updatedSlotsPerBeat = this.getSlotsPerBeat();
+    const updatedTotalSlots = this.currentTimeSignature.top * updatedSlotsPerBeat;
     
-    const currentSlotIndex = this.currentNoteNumber % currentTotalSlots;
-    const isBeat = currentSlotIndex % currentSlotsPerBeat === 0;
-    const beatIndex = Math.floor(currentSlotIndex / currentSlotsPerBeat);
+    const updatedSlotIndex = this.currentNoteNumber % updatedTotalSlots;
+    const updatedIsBeat = updatedSlotIndex % updatedSlotsPerBeat === 0;
+    const updatedBeatIndex = Math.floor(updatedSlotIndex / updatedSlotsPerBeat);
 
-    // 3. SCHEDULE AUDIO
+    // 5. SCHEDULE AUDIO
     let freq = 800;
     let gainVal = 0.15 * this.masterVolume;
     let decay = 0.05;
 
-    if (currentSlotIndex === 0) {
+    if (updatedSlotIndex === 0) {
       freq = 1500;
       gainVal = 0.8 * this.masterVolume;
       decay = 0.1;
-    } else if (isBeat) {
+    } else if (updatedIsBeat) {
       freq = 1000;
       gainVal = 0.4 * this.masterVolume;
     }
@@ -208,11 +221,11 @@ class AudioService {
     osc.start(time);
     osc.stop(time + decay);
 
-    // 4. NOTIFY UI (Lookahead notification)
+    // 6. NOTIFY UI (Lookahead notification)
     // We notify on every beat, but specifically the Downbeat (beatIndex 0) is crucial for sync
-    if (this.onScheduleCallback && isBeat) {
+    if (this.onScheduleCallback && updatedIsBeat) {
        this.onScheduleCallback({
-         beatIndex: beatIndex,
+         beatIndex: updatedBeatIndex,
          time: time,
          bpm: this.currentBpm
        });

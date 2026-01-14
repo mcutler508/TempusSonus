@@ -290,10 +290,8 @@ export const VisualPanel: React.FC<VisualPanelProps> = ({
       // 3. Update Uniforms
       gl.uniform1f(locs.uTime, isPlaying ? time : performance.now() / 1000);
       gl.uniform2f(locs.uResolution, canvas.width, canvas.height);
-      // Use display bpm for visuals speed, or sync bpm? 
-      // Using visual BPM (dial) feels more responsive when changing dial, 
-      // but syncing is key. Let's use dial BPM for general flow, but pulse is strictly synced.
-      gl.uniform1f(locs.uBpm, bpm); 
+      // Use measureSync.bpm consistently for all calculations to ensure perfect sync
+      gl.uniform1f(locs.uBpm, measureSync.bpm); 
       gl.uniform1f(locs.uIntensity, isPlaying ? 1.0 : 0.0); 
       gl.uniform1f(locs.uIsDark, theme === 'dark' ? 1.0 : 0.0);
       gl.uniform1f(locs.uBeatPulse, pulse);
