@@ -74,11 +74,11 @@ export const ControlDial: React.FC<ControlDialProps> = ({ label, value, onIncrea
 
         {/* Display */}
         <div className="relative z-20 text-center pointer-events-none px-1">
-          <div className="font-display italic text-[26px] leading-none text-zinc-100 dark:text-zinc-50">
+          <div className="font-display italic text-[26px] leading-none text-zinc-900 dark:text-zinc-50">
             {value}
           </div>
           {subValue && (
-            <div className="text-[9px] text-zinc-400 dark:text-zinc-500 mt-1.5 uppercase tracking-[0.18em] font-mono">
+            <div className="text-[9px] text-zinc-500 dark:text-zinc-400 mt-1.5 uppercase tracking-[0.18em] font-mono">
               {subValue}
             </div>
           )}

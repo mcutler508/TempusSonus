@@ -173,13 +173,13 @@ export const TempoDial: React.FC<TempoDialProps> = ({
           <div
             className={`font-display italic text-[30px] leading-none transition-colors ${
               isPending ? 'animate-[pulse_0.5s_infinite] text-[rgb(var(--accent-glow))] opacity-60' :
-              isDragging ? 'text-[rgb(var(--accent-glow-soft))]' : 'text-zinc-50'
+              isDragging ? 'text-[rgb(var(--accent-glow))]' : 'text-zinc-900 dark:text-zinc-50'
             }`}
           >
             {value}
           </div>
           {subValue && (
-            <div className="text-[9px] text-zinc-500 dark:text-zinc-500 mt-1.5 font-mono uppercase tracking-[0.18em]">
+            <div className="text-[9px] text-zinc-500 dark:text-zinc-400 mt-1.5 font-mono uppercase tracking-[0.18em]">
               {subValue}
             </div>
           )}

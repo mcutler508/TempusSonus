@@ -284,9 +284,11 @@ const App = () => {
               currentTheme={state.theme}
               showBackgroundVisuals={state.showBackgroundVisuals}
               showVisualPanel={state.showVisualPanel}
+              visualIntensity={state.visualIntensity}
               onSetTheme={handleSetTheme}
               onToggleVisuals={() => setState(s => ({ ...s, showBackgroundVisuals: !s.showBackgroundVisuals }))}
               onToggleVisualPanel={() => setState(s => ({ ...s, showVisualPanel: !s.showVisualPanel }))}
+              onSetVisualIntensity={(v) => setState(s => ({ ...s, visualIntensity: Math.max(0, Math.min(1, v)) }))}
               onClose={() => setShowSettings(false)}
             />
           </div>
@@ -328,14 +330,11 @@ const App = () => {
           </div>
         </main>
 
-        {/* CONTROL CONSOLE — stripped, floating */}
-        <footer className={`w-full mt-12 transition-opacity duration-300 ${showSettings ? 'opacity-20 blur-sm pointer-events-none' : 'opacity-100'}`}>
-
-          {/* Divider */}
-          <div className="w-full max-w-5xl mx-auto h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
+        {/* CONTROL CONSOLE — glass panel so it reads against shader */}
+        <footer className={`w-full mt-10 transition-opacity duration-300 ${showSettings ? 'opacity-20 blur-sm pointer-events-none' : 'opacity-100'}`}>
 
           {/* Dials Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6 lg:gap-8 px-6 py-2 justify-items-center">
+          <div className="relative surface-glass rounded-2xl grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6 lg:gap-8 px-6 lg:px-8 py-6 justify-items-center">
             <TempoDial
               label="Tempo"
               value={state.bpm}

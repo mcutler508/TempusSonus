@@ -153,8 +153,8 @@ export const ControlSlider: React.FC<ControlSliderProps> = ({ label, value, onCh
 
         {/* Center: icon + % */}
         <div className="relative z-20 flex flex-col items-center justify-center pointer-events-none gap-1">
-          <Icon size={16} className={`${progress > 0.75 ? 'text-[rgb(var(--accent-glow-soft))]' : 'text-zinc-200'}`} />
-          <div className="text-[11px] font-mono text-zinc-300 leading-none">{pct}%</div>
+          <Icon size={16} className={`${progress > 0.75 ? 'text-[rgb(var(--accent-glow))]' : 'text-zinc-700 dark:text-zinc-200'}`} />
+          <div className="text-[11px] font-mono leading-none text-zinc-700 dark:text-zinc-300">{pct}%</div>
         </div>
       </div>
     </div>
