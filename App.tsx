@@ -284,7 +284,7 @@ const App = () => {
       </header>
 
       {/* CENTER WORKSPACE */}
-      <div className="relative z-10 flex-1 w-full max-w-7xl flex flex-col items-center justify-center">
+      <div className="relative z-10 flex-1 w-full max-w-7xl flex flex-col items-center justify-start lg:justify-center">
 
         {/* SETTINGS OVERLAY */}
         {showSettings && (
@@ -346,7 +346,7 @@ const App = () => {
         <footer className={`w-full mt-4 sm:mt-6 lg:mt-10 transition-opacity duration-300 ${showSettings ? 'opacity-20 blur-sm pointer-events-none' : 'opacity-100'}`}>
 
           {/* Dials Row */}
-          <div className="relative surface-glass rounded-2xl grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-5 lg:gap-8 px-3 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-6 justify-items-center">
+          <div className="relative surface-glass rounded-2xl grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-5 lg:gap-8 px-3 sm:px-6 lg:px-8 py-3 sm:py-5 lg:py-6 justify-items-center">
             <div className="col-span-3 sm:col-span-4 lg:col-span-1 flex justify-center w-full">
               <TempoDial
                 label="Tempo"

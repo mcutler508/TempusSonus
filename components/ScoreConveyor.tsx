@@ -239,7 +239,7 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
   };
 
   return (
-    <div className="relative w-full max-w-full sm:max-w-3xl lg:max-w-5xl h-48 sm:h-56 lg:h-64 surface-glass select-none overflow-hidden rounded-2xl mx-2 sm:mx-4 transition-all duration-500">
+    <div className="relative w-full max-w-full sm:max-w-3xl lg:max-w-5xl h-40 sm:h-56 lg:h-64 surface-glass select-none overflow-hidden rounded-2xl mx-2 sm:mx-4 transition-all duration-500">
       {/* Stationary beat grid */}
       <div className="absolute inset-0 flex w-full h-full pointer-events-none">
         {Array.from({ length: measure.timeSignature.top }).map((_, i) => {
