@@ -14,56 +14,200 @@
               border: "hsl(var(--border))",
               background: "hsl(var(--background))",
               foreground: "hsl(var(--foreground))",
-            }
+            },
+            fontFamily: {
+              display: ['"Instrument Serif"', 'serif'],
+            },
+            keyframes: {
+              breathe: {
+                '0%, 100%': { transform: 'scale(1)', opacity: '0.85' },
+                '50%': { transform: 'scale(1.04)', opacity: '1' },
+              },
+              ignite: {
+                '0%': { transform: 'scale(0.92)', filter: 'brightness(1.6)' },
+                '100%': { transform: 'scale(1)', filter: 'brightness(1)' },
+              },
+              'beat-flash': {
+                '0%': { opacity: '0.55' },
+                '100%': { opacity: '0' },
+              },
+              'countdown-in': {
+                '0%': { transform: 'scale(1.9)', opacity: '0', letterSpacing: '0.1em' },
+                '40%': { opacity: '1' },
+                '100%': { transform: 'scale(1)', opacity: '1', letterSpacing: '0em' },
+              },
+            },
+            animation: {
+              breathe: 'breathe 2.4s ease-in-out infinite',
+              ignite: 'ignite 120ms ease-out',
+              'countdown-in': 'countdown-in 450ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards',
+            },
           }
         }
       }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
     <style>
+      :root {
+        --accent-glow: 245 158 11;        /* amber-500 */
+        --accent-glow-soft: 251 191 36;   /* amber-400 */
+        --accent-hand-r: 234 88 12;       /* orange-600 */
+        --accent-hand-l: 59 130 246;      /* blue-500 */
+        --surface-tint-dark: 255 255 255;
+        --surface-tint-light: 10 8 20;
+      }
+
       body {
         font-family: 'Inter', sans-serif;
         overflow-x: hidden;
-      }
-      .font-mono {
-        font-family: 'JetBrains Mono', monospace;
-      }
-      
-      /* Custom Scroll Animation */
-      @keyframes scrollLeft {
-        from { transform: translateX(0); }
-        to { transform: translateX(-50%); }
-      }
-      
-      .scrolling-measure {
-        will-change: transform;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
       }
 
-      /* Custom Range Input Styling */
-      input[type=range] {
-        -webkit-appearance: none; 
-        background: transparent; 
+      .font-mono { font-family: 'JetBrains Mono', monospace; }
+      .font-display {
+        font-family: 'Instrument Serif', 'Times New Roman', serif;
+        font-feature-settings: 'tnum' 1, 'lnum' 1;
+        letter-spacing: -0.01em;
       }
-      
+      .text-micro {
+        font-size: 10px;
+        line-height: 1;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+
+      /* ---- GLASS SURFACES ----
+         Readable against busy shader backgrounds. Dark mode leans black glass,
+         light mode leans frosted paper — both use enough alpha to keep text crisp. */
+      .surface-glass {
+        position: relative;
+        background: rgba(8, 6, 20, 0.72);
+        backdrop-filter: blur(28px) saturate(140%);
+        -webkit-backdrop-filter: blur(28px) saturate(140%);
+        border: 1px solid rgb(255 255 255 / 0.10);
+        box-shadow:
+          0 1px 0 0 rgb(255 255 255 / 0.08) inset,
+          0 30px 60px -20px rgba(0, 0, 0, 0.7),
+          0 8px 24px -12px rgba(0, 0, 0, 0.5);
+      }
+      .surface-glass::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(180deg, rgb(255 255 255 / 0.05), transparent 40%);
+        pointer-events: none;
+      }
+
+      html:not(.dark) .surface-glass {
+        background: rgba(252, 250, 245, 0.82);
+        backdrop-filter: blur(28px) saturate(160%);
+        -webkit-backdrop-filter: blur(28px) saturate(160%);
+        border-color: rgba(30, 20, 50, 0.12);
+        box-shadow:
+          0 1px 0 0 rgb(255 255 255 / 0.95) inset,
+          0 24px 48px -16px rgba(30, 20, 50, 0.22),
+          0 8px 20px -10px rgba(30, 20, 50, 0.16);
+      }
+      html:not(.dark) .surface-glass::before {
+        background: linear-gradient(180deg, rgb(255 255 255 / 0.6), transparent 40%);
+      }
+
+      .surface-recessed {
+        background:
+          linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.3)),
+          rgba(8, 6, 20, 0.5);
+        border: 1px solid rgb(255 255 255 / 0.08);
+        box-shadow:
+          inset 0 2px 8px rgba(0,0,0,0.6),
+          inset 0 -1px 0 rgb(255 255 255 / 0.05);
+      }
+      html:not(.dark) .surface-recessed {
+        background:
+          linear-gradient(180deg, rgba(30, 20, 50, 0.08), rgba(30, 20, 50, 0.02)),
+          rgba(248, 246, 240, 0.7);
+        border-color: rgba(30, 20, 50, 0.14);
+        box-shadow:
+          inset 0 2px 6px rgba(30, 20, 50, 0.15),
+          inset 0 -1px 0 rgb(255 255 255 / 0.9);
+      }
+
+      /* Readable token panel — used around the pattern info strip */
+      .token-chip {
+        background: rgba(8, 6, 20, 0.55);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgb(255 255 255 / 0.08);
+      }
+      html:not(.dark) .token-chip {
+        background: rgba(252, 250, 245, 0.85);
+        border-color: rgba(30, 20, 50, 0.12);
+      }
+
+      /* ---- CANVAS AMBIENT ---- */
+      .canvas-ambient-dark {
+        background:
+          radial-gradient(120% 80% at 50% -10%, rgba(38, 20, 80, 0.55) 0%, rgba(18, 8, 40, 0.25) 28%, transparent 55%),
+          radial-gradient(80% 60% at 80% 110%, rgba(110, 40, 15, 0.18) 0%, transparent 55%),
+          #000000;
+      }
+      .canvas-ambient-light {
+        background:
+          radial-gradient(120% 80% at 50% -10%, rgba(253, 230, 170, 0.55) 0%, transparent 55%),
+          radial-gradient(80% 60% at 80% 110%, rgba(240, 220, 255, 0.5) 0%, transparent 55%),
+          #fafaf7;
+      }
+
+      /* ---- FILM GRAIN ---- */
+      .grain-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        mix-blend-mode: overlay;
+        opacity: 0.06;
+        z-index: 5;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      }
+      html:not(.dark) .grain-overlay { opacity: 0.035; mix-blend-mode: multiply; }
+
+      /* ---- AMBER ACCENT GLOW UTILS ---- */
+      .accent-glow-text { color: rgb(var(--accent-glow)); }
+      .accent-glow-box {
+        box-shadow:
+          0 0 0 1px rgb(var(--accent-glow) / 0.3),
+          0 0 28px 2px rgb(var(--accent-glow) / 0.25),
+          0 0 60px 8px rgb(var(--accent-glow) / 0.1);
+      }
+
+      /* ---- RANGE INPUT ---- */
+      input[type=range] { -webkit-appearance: none; background: transparent; }
       input[type=range]::-webkit-slider-thumb {
         -webkit-appearance: none;
-        height: 16px;
-        width: 16px;
+        height: 16px; width: 16px;
         border-radius: 50%;
-        background: #f59e0b;
+        background: rgb(var(--accent-glow));
         cursor: pointer;
         margin-top: -6px;
-        box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+        box-shadow: 0 0 10px rgb(var(--accent-glow) / 0.6);
       }
-
       input[type=range]::-webkit-slider-runnable-track {
-        width: 100%;
-        height: 4px;
+        width: 100%; height: 4px;
         cursor: pointer;
-        background: currentColor; /* Inherits text color */
+        background: currentColor;
         opacity: 0.2;
         border-radius: 2px;
       }
+
+      /* ---- SCROLLBAR (subtle) ---- */
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-thumb {
+        background: rgb(var(--surface-tint-dark) / 0.1);
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover { background: rgb(var(--surface-tint-dark) / 0.18); }
     </style>
   <script type="importmap">
 {

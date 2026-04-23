@@ -25,29 +25,26 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
 }) => {
   const [playheadProgress, setPlayheadProgress] = useState(0);
   const [activeNoteIndex, setActiveNoteIndex] = useState(-1);
+  const [flashBeat, setFlashBeat] = useState<{ index: number; key: number } | null>(null);
   const requestRef = useRef<number>(0);
+  const lastBeatIndexRef = useRef<number>(-1);
 
-  // WE USE REFS FOR ANIMATION LOOP STATE TO AVOID REACT RENDER CYCLE LAG
-  // The 'active' params are what is currently being rendered
   const activeParams = useRef<MeasureSyncData>({ startTime: 0, bpm: 100 });
-  // The 'next' params are what we will switch to when time reaches nextParams.startTime
   const nextParams = useRef<MeasureSyncData | null>(null);
 
-  // Sync Props to Refs (Lookahead Queue)
+  // Sync incoming measure data to refs
   useEffect(() => {
     if (!isPlaying) {
       setPlayheadProgress(0);
       setActiveNoteIndex(-1);
+      lastBeatIndexRef.current = -1;
       return;
     }
 
     const currentTime = audioService.getCurrentTime();
-
-    // If the new sync data is in the future (more than a frame away), queue it
     if (measureSync.startTime > currentTime + 0.02) {
       nextParams.current = measureSync;
     } else {
-      // Immediate update (initial start or late arrival)
       activeParams.current = measureSync;
       nextParams.current = null;
     }
@@ -56,32 +53,29 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
   const totalNotes = measure.notes.length;
   const slotsPerBeat = totalNotes / measure.timeSignature.top;
 
-  // Animation Loop
+  // Animation loop
   const animate = () => {
-    if (!isPlaying) {
-      return;
-    }
+    if (!isPlaying) return;
 
     const currentTime = audioService.getCurrentTime();
 
-    // 1. Check if we need to switch to the queued measure (Frame Perfect Switch)
     if (nextParams.current && currentTime >= nextParams.current.startTime) {
       activeParams.current = nextParams.current;
       nextParams.current = null;
     }
 
-    // 2. Calculate Progress based on ACTIVE params
     const measureDuration = getMeasureDuration(activeParams.current.bpm, measure.timeSignature);
     const elapsed = currentTime - activeParams.current.startTime;
-    
-    // We allow negative elapsed (during lookahead pre-roll) but clamp visual to 0
     const safeElapsed = Math.max(0, elapsed);
-    
-    // Modulo logic handles loop if we haven't received a new start time yet, 
-    // though ideally the queue updates exactly on time.
     const progress = (safeElapsed % measureDuration) / measureDuration;
-    
     const currentIndex = Math.floor(progress * totalNotes);
+    const currentBeat = Math.floor(progress * measure.timeSignature.top);
+
+    // Trigger beat flash on downbeat transitions
+    if (currentBeat !== lastBeatIndexRef.current) {
+      lastBeatIndexRef.current = currentBeat;
+      setFlashBeat({ index: currentBeat, key: performance.now() });
+    }
 
     setPlayheadProgress(progress);
     setActiveNoteIndex(currentIndex);
@@ -94,46 +88,41 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
       requestRef.current = requestAnimationFrame(animate);
     } else {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
+      setFlashBeat(null);
     }
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
   }, [isPlaying]);
 
-  // Dynamic Ticks Logic
-  // Render ticks between beats based on subdivision
   const renderMicroGrid = () => {
-     let ticks = 0;
-     if (subdivision === Subdivision.Sixteenth) ticks = 3; // 4 slots -> 3 dividers
-     else if (subdivision === Subdivision.Triplet) ticks = 2; // 3 slots -> 2 dividers
-     else if (subdivision === Subdivision.Eighth) ticks = 1; // 2 slots -> 1 divider
-     
-     if (ticks === 0) return null;
+    let ticks = 0;
+    if (subdivision === Subdivision.Sixteenth) ticks = 3;
+    else if (subdivision === Subdivision.Triplet) ticks = 2;
+    else if (subdivision === Subdivision.Eighth) ticks = 1;
+    if (ticks === 0) return null;
 
-     return (
-        <div className="absolute inset-0 flex items-center justify-around opacity-20 dark:opacity-10 z-10 pointer-events-none">
-           {Array.from({ length: ticks }).map((_, i) => {
-              // Highlight middle tick slightly if we have an odd number (center point)
-              const isMiddle = (ticks % 2 !== 0) && (i === Math.floor(ticks / 2));
-              const heightClass = isMiddle ? "h-3" : "h-2";
-              return (
-                 <div key={i} className={`w-0.5 ${heightClass} bg-zinc-400 dark:bg-zinc-500 rounded-full`}></div>
-              );
-           })}
-        </div>
-     );
+    return (
+      <div className="absolute inset-0 flex items-center justify-around opacity-25 dark:opacity-15 z-10 pointer-events-none">
+        {Array.from({ length: ticks }).map((_, i) => {
+          const isMiddle = (ticks % 2 !== 0) && (i === Math.floor(ticks / 2));
+          const heightClass = isMiddle ? "h-3" : "h-1.5";
+          return (
+            <div key={i} className={`w-px ${heightClass} bg-zinc-300 dark:bg-zinc-400 rounded-full`}></div>
+          );
+        })}
+      </div>
+    );
   };
 
-  // Helper to render a row of notes
   const renderNoteRow = (type: 'primary' | 'mirror') => {
     return (
       <div className="absolute inset-0 flex items-center px-0 w-full h-full">
         {measure.notes.map((note, idx) => {
-          // Logic for Inversion
           let displayHand = note.hand;
           if (type === 'mirror') {
-             if (note.hand === 'R') displayHand = 'L';
-             else if (note.hand === 'L') displayHand = 'R';
+            if (note.hand === 'R') displayHand = 'L';
+            else if (note.hand === 'L') displayHand = 'R';
           }
 
           const isAccent = note.type === 'accent';
@@ -141,34 +130,15 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
           const isFlam = note.type === 'flam';
           const isDrag = note.type === 'drag';
           const isActive = idx === activeNoteIndex;
-          
-          const widthPct = 100 / totalNotes;
-          
-          // Determine Style based on Hand
           const isRight = displayHand === 'R';
-          
-          let colorClass = '';
-          if (isRight) {
-             // RIGHT HAND (Orange)
-             if (isActive) {
-                colorClass = `bg-orange-500 text-white dark:bg-orange-600 dark:text-orange-100 shadow-[0_0_25px_rgba(234,88,12,0.6)] ring-1 ring-orange-400`;
-             } else {
-                colorClass = `bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/40 dark:text-orange-100 dark:border-orange-800/50`;
-             }
-          } else {
-             // LEFT HAND (Blue)
-             if (isActive) {
-                colorClass = `bg-blue-600 text-white shadow-[0_0_25px_rgba(37,99,235,0.6)] ring-1 ring-blue-400`;
-             } else {
-                colorClass = `bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-100 dark:border-blue-800/50`;
-             }
-          }
-          
-          // --- Subdivision Counting Logic ---
+
+          const widthPct = 100 / totalNotes;
+          const handVar = isRight ? '--accent-hand-r' : '--accent-hand-l';
+
+          // Subdivision counting
           let subText = '';
           const currentBeat = Math.floor(idx / slotsPerBeat) + 1;
           const subIdx = idx % slotsPerBeat;
-
           if (subdivision === Subdivision.Sixteenth) {
             if (subIdx === 0) subText = currentBeat.toString();
             else if (subIdx === 1) subText = 'e';
@@ -186,60 +156,81 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
           }
 
           return (
-            <div 
+            <div
               key={`${type}-${note.id}`}
               className="h-full flex flex-col items-center justify-center relative"
               style={{ width: `${widthPct}%` }}
             >
-              {/* Active Column Highlight (Subtle) */}
-              <div 
-                className={`absolute inset-0 bg-amber-500/10 dark:bg-amber-500/5 transition-opacity duration-75 ${isActive ? 'opacity-100' : 'opacity-0'}`}
-              ></div>
-
               {!isGhost && (
-                <div className={`
-                  relative flex items-center justify-center
-                  w-12 h-16 rounded-md
-                  font-bold text-2xl select-none
-                  transition-all duration-75 border
-                  ${colorClass}
-                  ${!isRight ? 'italic' : ''}
-                  ${isAccent ? 'scale-110 z-10 border-black/20 dark:border-white/40' : 'opacity-90'}
-                  ${isActive ? 'scale-105 -translate-y-1 brightness-110' : ''}
-                  ${type === 'mirror' ? 'opacity-80' : ''}
-                `}>
-                  {/* Grace Notes */}
+                <div
+                  key={isActive ? `active-${idx}` : `idle-${idx}`}
+                  className={`
+                    relative flex items-center justify-center
+                    w-11 h-14 rounded-lg
+                    font-semibold text-[22px] select-none
+                    transition-[transform,filter] duration-100
+                    ${!isRight ? 'italic' : ''}
+                    ${isActive ? 'scale-110 -translate-y-1 z-10 animate-ignite' : isAccent ? 'scale-[1.04]' : 'scale-100'}
+                    ${type === 'mirror' ? 'opacity-85' : ''}
+                  `}
+                  style={{
+                    color: isActive ? '#ffffff' : `rgb(var(${handVar}))`,
+                    background: isActive
+                      ? `radial-gradient(circle at 50% 40%, rgb(var(${handVar}) / 1) 0%, rgb(var(${handVar}) / 0.85) 70%)`
+                      : `linear-gradient(180deg, rgb(var(${handVar}) / 0.18), rgb(var(${handVar}) / 0.08))`,
+                    border: `1px solid rgb(var(${handVar}) / ${isActive ? 0.9 : 0.35})`,
+                    boxShadow: isActive
+                      ? `0 0 0 1px rgb(var(${handVar}) / 0.7), 0 0 28px 4px rgb(var(${handVar}) / 0.55), 0 0 60px 12px rgb(var(${handVar}) / 0.3), inset 0 1px 0 rgba(255,255,255,0.25)`
+                      : `0 4px 16px -6px rgb(var(${handVar}) / 0.45), inset 0 1px 0 rgb(255 255 255 / 0.1)`,
+                  }}
+                >
+                  {/* Soft outer halo (idle) */}
+                  {!isActive && (
+                    <span
+                      className="absolute -inset-1 rounded-xl pointer-events-none"
+                      style={{ background: `radial-gradient(circle, rgb(var(${handVar}) / 0.18), transparent 70%)`, filter: 'blur(6px)' }}
+                    />
+                  )}
+
+                  {/* Grace notes */}
                   {isFlam && (
-                    <span className="absolute -left-4 top-4 text-sm opacity-70 font-normal text-zinc-500 dark:text-zinc-400">
+                    <span className="absolute -left-3.5 top-3 text-[11px] opacity-70 font-normal text-zinc-400">
                       {displayHand === 'R' ? 'l' : 'r'}
                     </span>
                   )}
                   {isDrag && (
-                    <span className="absolute -left-5 top-4 text-xs opacity-70 font-normal text-zinc-500 dark:text-zinc-400 tracking-tighter">
+                    <span className="absolute -left-4 top-3 text-[10px] opacity-70 font-normal text-zinc-400 tracking-tighter">
                       {displayHand === 'R' ? 'll' : 'rr'}
                     </span>
                   )}
-                  
-                  {displayHand}
 
-                  {/* Accent Ring */}
+                  <span className="relative z-10">{displayHand}</span>
+
+                  {/* Accent indicator — thin top bracket */}
                   {isAccent && (
-                    <div className={`absolute -inset-1 rounded-lg border ${isActive ? 'border-black/30 dark:border-white/60' : 'border-black/10 dark:border-white/20'}`}></div>
+                    <span
+                      className="absolute -top-2 left-1/2 -translate-x-1/2 w-6 h-[2px] rounded-full"
+                      style={{ background: `rgb(var(${handVar}))`, boxShadow: `0 0 8px rgb(var(${handVar}) / 0.8)` }}
+                    />
                   )}
                 </div>
               )}
-              
-               {/* Ghost Placeholder */}
-               {isGhost && (
-                 <div className="w-2 h-2 rounded-full bg-zinc-300 dark:bg-zinc-800 opacity-20"></div>
-               )}
 
-               {/* Sticking/Counting Text Below (Primary Only) */}
-               {type === 'primary' && (
-                 <span className={`absolute -bottom-8 text-[10px] font-mono font-bold tracking-wider transition-colors uppercase ${isActive ? 'text-amber-600 dark:text-amber-500' : 'text-zinc-400 dark:text-zinc-600 opacity-70'}`}>
-                   {subText}
-                 </span>
-               )}
+              {/* Ghost placeholder */}
+              {isGhost && (
+                <div className="w-1.5 h-1.5 rounded-full bg-white/10"></div>
+              )}
+
+              {/* Sticking / counting text */}
+              {type === 'primary' && (
+                <span
+                  className={`absolute -bottom-7 text-[10px] font-mono font-semibold tracking-[0.15em] transition-colors uppercase ${
+                    isActive ? 'text-[rgb(var(--accent-glow-soft))]' : 'text-zinc-500/70'
+                  }`}
+                >
+                  {subText}
+                </span>
+              )}
             </div>
           );
         })}
@@ -248,57 +239,86 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
   };
 
   return (
-    <div className="relative w-full max-w-5xl h-64 bg-white dark:bg-zinc-950/50 border-y border-zinc-200 dark:border-zinc-800 backdrop-blur-sm select-none overflow-hidden rounded-xl mx-4 shadow-xl dark:shadow-2xl transition-all duration-500">
-      
-      {/* 1. THE STATIONARY GRID (Shared) */}
+    <div className="relative w-full max-w-5xl h-64 surface-glass select-none overflow-hidden rounded-2xl mx-4 transition-all duration-500">
+      {/* Stationary beat grid */}
       <div className="absolute inset-0 flex w-full h-full pointer-events-none">
-        {Array.from({ length: measure.timeSignature.top }).map((_, i) => (
-          <div 
-            key={`beat-${i}`} 
-            className="flex-1 border-r border-zinc-200 dark:border-zinc-800/60 h-full last:border-r-0 relative group"
-          >
-            {/* Micro Grid (Always On) */}
-            {renderMicroGrid()}
-            
-            {/* Corner Label (Smaller backup) */}
-            <span className="absolute top-2 left-3 text-[10px] font-bold text-zinc-300 dark:text-zinc-700 select-none tracking-widest uppercase">
-              Beat {i + 1}
-            </span>
-          </div>
-        ))}
+        {Array.from({ length: measure.timeSignature.top }).map((_, i) => {
+          const isFlashing = flashBeat && flashBeat.index === i;
+          return (
+            <div
+              key={`beat-${i}`}
+              className="flex-1 border-r border-white/[0.04] dark:border-white/[0.04] h-full last:border-r-0 relative"
+            >
+              {/* Beat flash (downbeat = amber, other beats = soft white) */}
+              {isFlashing && (
+                <div
+                  key={flashBeat.key}
+                  className="absolute inset-0 animate-[beat-flash_350ms_ease-out_forwards]"
+                  style={{
+                    background: i === 0
+                      ? 'linear-gradient(180deg, rgb(var(--accent-glow) / 0.22), rgb(var(--accent-glow) / 0.04) 70%, transparent)'
+                      : 'linear-gradient(180deg, rgb(255 255 255 / 0.08), transparent 70%)',
+                  }}
+                />
+              )}
+
+              {renderMicroGrid()}
+
+              <span className="absolute top-3 left-3 text-[9px] font-mono font-semibold text-zinc-500/40 dark:text-zinc-500/35 tracking-[0.2em] uppercase">
+                {i + 1}
+              </span>
+            </div>
+          );
+        })}
       </div>
 
-      {/* 2. NOTES CONTAINER */}
-      <div className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 z-20 ${mirrorMode ? 'gap-10' : 'gap-0'}`}>
-        
-        {/* PRIMARY ROW */}
-        <div className={`relative w-full h-20 transition-all duration-500 ${mirrorMode ? '-translate-y-4' : 'translate-y-0'}`}>
-          <div className={`absolute -left-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-400 dark:text-zinc-600 font-mono -rotate-90 origin-right whitespace-nowrap transition-opacity duration-500 ${mirrorMode ? 'opacity-50' : 'opacity-0'}`}>
+      {/* Notes */}
+      <div className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 z-20 ${mirrorMode ? 'gap-8' : 'gap-0'}`}>
+        <div className={`relative w-full h-20 transition-all duration-500 ${mirrorMode ? '-translate-y-3' : 'translate-y-0'}`}>
+          <div className={`absolute -left-3 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500 font-mono -rotate-90 origin-right whitespace-nowrap tracking-[0.2em] transition-opacity duration-500 ${mirrorMode ? 'opacity-60' : 'opacity-0'}`}>
             PRIMARY
           </div>
           {renderNoteRow('primary')}
         </div>
 
-        {/* MIRROR ROW */}
         <div className={`relative w-full h-20 transition-all duration-500 ${mirrorMode ? 'opacity-100 translate-y-2' : 'opacity-0 translate-y-10 pointer-events-none absolute bottom-0'}`}>
-           <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-400 dark:text-zinc-600 font-mono -rotate-90 origin-right whitespace-nowrap opacity-50">
-             INVERTED
-           </div>
-           {renderNoteRow('mirror')}
+          <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500 font-mono -rotate-90 origin-right whitespace-nowrap opacity-60 tracking-[0.2em]">
+            INVERTED
+          </div>
+          {renderNoteRow('mirror')}
         </div>
-
       </div>
 
-      {/* 3. PLAYHEAD OVERLAY (Shared) */}
-      <div 
-         className={`absolute top-0 bottom-0 w-0.5 bg-amber-500 dark:bg-amber-400 z-50 shadow-[0_0_15px_#f59e0b] transition-none ${!isPlaying ? 'opacity-0' : 'opacity-100'}`}
-         style={{ left: `${playheadProgress * 100}%` }}
-      >
-        <div className="absolute top-0 -left-1.5 w-4 h-2 bg-amber-500 dark:bg-amber-400 rounded-b-sm"></div>
-        <div className="absolute bottom-0 -left-1.5 w-4 h-2 bg-amber-500 dark:bg-amber-400 rounded-t-sm"></div>
-        <div className="absolute inset-y-0 -left-px w-1 bg-amber-500 blur-sm"></div>
-      </div>
+      {/* Playhead beam + trailing comet */}
+      {isPlaying && (
+        <>
+          {/* Trailing gradient comet behind the beam */}
+          <div
+            className="absolute top-0 bottom-0 z-40 pointer-events-none transition-none"
+            style={{
+              left: `${playheadProgress * 100}%`,
+              width: '90px',
+              marginLeft: '-90px',
+              background: 'linear-gradient(90deg, transparent, rgb(var(--accent-glow) / 0.04) 30%, rgb(var(--accent-glow) / 0.18))',
+              mixBlendMode: 'screen',
+            }}
+          />
 
+          {/* Main beam */}
+          <div
+            className="absolute top-0 bottom-0 w-[1.5px] z-50 transition-none"
+            style={{
+              left: `${playheadProgress * 100}%`,
+              background: 'linear-gradient(180deg, transparent, rgb(var(--accent-glow)) 15%, rgb(var(--accent-glow)) 85%, transparent)',
+              boxShadow: '0 0 18px rgb(var(--accent-glow)), 0 0 40px rgb(var(--accent-glow) / 0.5)',
+            }}
+          >
+            {/* End caps */}
+            <div className="absolute top-0 -left-1 w-3 h-2 rounded-b-sm" style={{ background: 'rgb(var(--accent-glow))', boxShadow: '0 0 10px rgb(var(--accent-glow))' }}></div>
+            <div className="absolute bottom-0 -left-1 w-3 h-2 rounded-t-sm" style={{ background: 'rgb(var(--accent-glow))', boxShadow: '0 0 10px rgb(var(--accent-glow))' }}></div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

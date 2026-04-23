@@ -13,6 +13,8 @@ interface VisualPanelProps {
   theme: Theme;
   timeSignature: TimeSignature;
   measureSync: MeasureSyncData;
+  fullBleed?: boolean;
+  intensity?: number; // 0..1, scales the canvas opacity. 1 = current max.
 }
 
 /**
@@ -28,13 +30,16 @@ interface TouchPoint {
   startTime: number; // For decay calculation
 }
 
-export const VisualPanel: React.FC<VisualPanelProps> = ({ 
-  isPlaying, 
-  bpm, 
+export const VisualPanel: React.FC<VisualPanelProps> = ({
+  isPlaying,
+  bpm,
   theme,
   timeSignature,
-  measureSync
+  measureSync,
+  fullBleed = false,
+  intensity = 1
 }) => {
+  const clampedIntensity = Math.max(0, Math.min(1, intensity));
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const requestRef = useRef<number>(0);
   
@@ -507,14 +512,50 @@ export const VisualPanel: React.FC<VisualPanelProps> = ({
     };
   }, []); // Run ONCE on mount (and on unmount cleanup). Deps are handled via ref.
 
+  if (fullBleed) {
+    // Dim-veil strength grows as intensity drops, so UI remains legible.
+    // Dark mode: deepen to black. Light mode: lighten to paper.
+    const veilAlpha = (1 - clampedIntensity) * 0.85;
+    return (
+      <div className="absolute inset-0 overflow-hidden pointer-events-auto">
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full block transition-opacity duration-500"
+          style={{ opacity: clampedIntensity }}
+        />
+        {/* Dim veil — scales with intensity. Kills shader contrast without fully hiding it. */}
+        <div
+          className="absolute inset-0 pointer-events-none transition-[background-color] duration-500"
+          style={{
+            backgroundColor: theme === 'dark'
+              ? `rgba(0, 0, 0, ${veilAlpha})`
+              : `rgba(250, 248, 242, ${veilAlpha})`,
+          }}
+        />
+        {/* Edge vignette for focus toward center */}
+        <div className="absolute inset-0 pointer-events-none dark:shadow-[inset_0_0_140px_rgba(0,0,0,0.85),inset_0_0_40px_rgba(0,0,0,0.4)]"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="relative w-full h-full bg-zinc-50 dark:bg-black overflow-hidden rounded-xl shadow-sm dark:shadow-none border border-zinc-200 dark:border-zinc-800 transition-colors duration-500">
-      <canvas 
-        ref={canvasRef} 
-        className="w-full h-full block"
+    <div className="relative w-full h-full bg-zinc-50 dark:bg-black overflow-hidden rounded-2xl shadow-sm dark:shadow-none border border-zinc-200 dark:border-zinc-800 transition-colors duration-500">
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full block transition-opacity duration-500"
+        style={{ opacity: clampedIntensity }}
+      />
+      {/* Dim veil also applied to framed variant for consistency */}
+      <div
+        className="absolute inset-0 pointer-events-none rounded-2xl transition-[background-color] duration-500"
+        style={{
+          backgroundColor: theme === 'dark'
+            ? `rgba(0, 0, 0, ${(1 - clampedIntensity) * 0.75})`
+            : `rgba(250, 248, 242, ${(1 - clampedIntensity) * 0.75})`,
+        }}
       />
       {/* Glossy Overlay for "Screen" look - adapted for light mode */}
-      <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_20px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_0_60px_rgba(0,0,0,0.5)] rounded-xl ring-1 ring-inset ring-black/5 dark:ring-white/10"></div>
+      <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_20px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_0_60px_rgba(0,0,0,0.5)] rounded-2xl ring-1 ring-inset ring-black/5 dark:ring-white/10"></div>
     </div>
   );
 };

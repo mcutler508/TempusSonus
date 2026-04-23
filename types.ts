@@ -47,5 +47,6 @@ export interface EngineState {
   mirrorMode: boolean;
   showBackgroundVisuals: boolean; // Full screen ambient
   showVisualPanel: boolean;       // Dedicated visualizer panel
+  visualIntensity: number;        // 0..1 — scales the ambient shader output
   theme: Theme;
 }
