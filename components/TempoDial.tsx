@@ -10,11 +10,13 @@ interface TempoDialProps {
   isPending?: boolean;
 }
 
-export const TempoDial: React.FC<TempoDialProps> = ({ 
-  label, 
-  value, 
-  min = 40, 
-  max = 240, 
+const TICK_COUNT = 36;
+
+export const TempoDial: React.FC<TempoDialProps> = ({
+  label,
+  value,
+  min = 40,
+  max = 240,
   onChange,
   subValue,
   isPending = false
@@ -25,35 +27,23 @@ export const TempoDial: React.FC<TempoDialProps> = ({
   const startVal = useRef<number>(0);
   const dialRef = useRef<HTMLDivElement>(null);
 
-  // Rotation logic
-  // Map value (min-max) to angle (-135 to 135)
   const range = max - min;
   const progress = (value - min) / range;
   const angle = -135 + (progress * 270);
+  const arcLength = progress * 270; // in degrees, for the live value arc
 
   useEffect(() => {
     const handleMove = (e: MouseEvent | TouchEvent) => {
       if (!isDragging) return;
-      
-      // Support both X and Y dragging
       const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
       const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
-      
-      const deltaY = startY.current - clientY; // Up is positive (increase)
-      const deltaX = clientX - startX.current; // Right is positive (increase)
-      
-      // Combine deltas: Dragging up or right increases value
+      const deltaY = startY.current - clientY;
+      const deltaX = clientX - startX.current;
       const delta = deltaY + deltaX;
-      
-      // Sensitivity: 1 BPM per 2 pixels
-      const sensitivity = 0.5; 
-      
+      const sensitivity = 0.5;
       let newValue = startVal.current + Math.round(delta * sensitivity);
       newValue = Math.max(min, Math.min(max, newValue));
-      
-      if (newValue !== value) {
-        onChange(newValue);
-      }
+      if (newValue !== value) onChange(newValue);
     };
 
     const handleUp = () => {
@@ -79,67 +69,119 @@ export const TempoDial: React.FC<TempoDialProps> = ({
 
   const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
     setIsDragging(true);
-    
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
-    
     startY.current = clientY;
     startX.current = clientX;
     startVal.current = value;
-    
     document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
   };
 
+  // SVG arc math: radius 40, arc spans -135deg to -135+arcLength deg
+  const arcRadius = 40;
+  const arcCircumference = 2 * Math.PI * arcRadius;
+  const arcVisible = (270 / 360) * arcCircumference;   // max track length
+  const arcDash = (arcLength / 360) * arcCircumference;
+
   return (
-    <div className="flex flex-col items-center gap-2 group select-none">
-      <div className={`text-[10px] uppercase tracking-widest font-semibold transition-colors ${isDragging ? 'text-amber-500' : 'text-zinc-500 group-hover:text-amber-600 dark:group-hover:text-amber-500/80'}`}>
+    <div className="flex flex-col items-center gap-3 group select-none">
+      <div className={`text-micro transition-colors ${isDragging ? 'text-[rgb(var(--accent-glow))]' : 'text-zinc-500 group-hover:text-[rgb(var(--accent-glow))]'}`}>
         {label}
       </div>
-      
-      <div 
+
+      <div
         ref={dialRef}
-        className="relative flex items-center justify-center w-24 h-24 rounded-full touch-none cursor-ns-resize"
+        className="relative flex items-center justify-center w-[88px] h-[88px] rounded-full touch-none cursor-ns-resize"
         onMouseDown={handleStart}
         onTouchStart={handleStart}
         title="Drag up/down or left/right to change BPM"
       >
-        {/* Outer Bezel / Glow Container */}
-        <div className={`absolute inset-0 rounded-full transition-all duration-300 ${isDragging ? 'bg-amber-500/10 shadow-[0_0_30px_rgba(245,158,11,0.2)]' : ''}`}></div>
+        {/* Drag glow halo */}
+        <div
+          className={`absolute -inset-2 rounded-full pointer-events-none transition-opacity duration-300 ${isDragging ? 'opacity-100' : 'opacity-0'}`}
+          style={{ boxShadow: '0 0 40px 2px rgb(var(--accent-glow) / 0.4), 0 0 80px 12px rgb(var(--accent-glow) / 0.15)' }}
+        />
 
-        {/* The Base */}
-        <div className="absolute inset-1 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-[inset_0_2px_10px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]"></div>
+        {/* Recessed well */}
+        <div className="absolute inset-0 rounded-full surface-recessed"></div>
 
-        {/* Range Indicator Ring (Background) */}
-        <svg className="absolute inset-0 w-full h-full p-2 pointer-events-none opacity-10 dark:opacity-20">
-            <circle
-                cx="50%" cy="50%" r="44%"
-                fill="none" stroke="currentColor" strokeWidth="2"
-                strokeDasharray="75 25" pathLength="100"
-                transform="rotate(135 48 48)"
-                className="text-zinc-600"
-            />
+        {/* Perimeter ticks */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 88 88">
+          {Array.from({ length: TICK_COUNT }).map((_, i) => {
+            const tickAngle = -135 + (i / (TICK_COUNT - 1)) * 270;
+            const isMajor = i % 6 === 0;
+            const active = (i / (TICK_COUNT - 1)) <= progress;
+            const inner = isMajor ? 33 : 35;
+            const outer = 40;
+            const rad = ((tickAngle - 90) * Math.PI) / 180;
+            const x1 = 44 + Math.cos(rad) * inner;
+            const y1 = 44 + Math.sin(rad) * inner;
+            const x2 = 44 + Math.cos(rad) * outer;
+            const y2 = 44 + Math.sin(rad) * outer;
+            return (
+              <line
+                key={i}
+                x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke={active ? 'rgb(var(--accent-glow))' : 'currentColor'}
+                strokeWidth={isMajor ? 1.4 : 0.8}
+                className={active ? '' : 'text-zinc-400/40 dark:text-zinc-400/30'}
+                opacity={active ? (isMajor ? 0.95 : 0.75) : (isMajor ? 0.5 : 0.25)}
+                strokeLinecap="round"
+              />
+            );
+          })}
         </svg>
 
-        {/* The Rotating Cap */}
-        <div 
-           className="absolute inset-2 rounded-full bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-800 dark:to-zinc-900 border border-zinc-300 dark:border-zinc-700/50 transition-transform duration-75 ease-out shadow-lg"
-           style={{ transform: `rotate(${angle}deg)` }}
+        {/* Live value arc */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 88 88">
+          <circle
+            cx="44" cy="44" r={arcRadius - 5}
+            fill="none"
+            stroke="rgb(var(--accent-glow))"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeDasharray={`${arcDash} ${arcCircumference}`}
+            transform="rotate(135 44 44)"
+            style={{ filter: 'drop-shadow(0 0 4px rgb(var(--accent-glow) / 0.6))' }}
+            opacity="0.8"
+          />
+        </svg>
+
+        {/* Brushed rotating cap */}
+        <div
+          className="absolute inset-[12px] rounded-full transition-transform duration-75 ease-out"
+          style={{
+            transform: `rotate(${angle}deg)`,
+            background: 'conic-gradient(from 0deg, rgba(255,255,255,0.16), rgba(255,255,255,0.02) 20%, rgba(255,255,255,0.16) 40%, rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.16) 80%, rgba(255,255,255,0.02))',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -2px 6px rgba(0,0,0,0.55), 0 6px 18px -4px rgba(0,0,0,0.7)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
         >
-           {/* Marker */}
-           <div className={`absolute top-1.5 left-1/2 -translate-x-1/2 w-1.5 h-4 rounded-full transition-colors ${isDragging ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,1)]' : 'bg-zinc-400 dark:bg-zinc-500'}`}></div>
+          {/* Indicator marker */}
+          <div
+            className={`absolute top-1.5 left-1/2 -translate-x-1/2 w-1 h-3.5 rounded-full transition-colors ${isDragging ? 'bg-[rgb(var(--accent-glow))]' : 'bg-zinc-100/90 dark:bg-zinc-200'}`}
+            style={{ boxShadow: isDragging ? '0 0 8px rgb(var(--accent-glow))' : '0 0 4px rgba(255,255,255,0.4)' }}
+          />
         </div>
 
-        {/* Center Display */}
-        <div className="relative z-10 flex flex-col items-center justify-center pointer-events-none">
-          <div className={`text-3xl font-bold font-mono tracking-tighter transition-colors ${
-            isPending ? 'animate-[pulse_0.5s_infinite] text-amber-500/50 dark:text-amber-500/50' : 
-            isDragging ? 'text-amber-600 dark:text-amber-500' : 'text-zinc-800 dark:text-zinc-200'
-          }`}>
+        {/* Cap shading overlay */}
+        <div className="absolute inset-[12px] rounded-full pointer-events-none bg-gradient-to-b from-white/[0.08] via-transparent to-black/40"></div>
+
+        {/* Center display */}
+        <div className="relative z-20 flex flex-col items-center justify-center pointer-events-none">
+          <div
+            className={`font-display italic text-[30px] leading-none transition-colors ${
+              isPending ? 'animate-[pulse_0.5s_infinite] text-[rgb(var(--accent-glow))] opacity-60' :
+              isDragging ? 'text-[rgb(var(--accent-glow-soft))]' : 'text-zinc-50'
+            }`}
+          >
             {value}
           </div>
           {subValue && (
-            <div className="text-[9px] text-zinc-500 dark:text-zinc-600 font-bold uppercase tracking-wider">{subValue}</div>
+            <div className="text-[9px] text-zinc-500 dark:text-zinc-500 mt-1.5 font-mono uppercase tracking-[0.18em]">
+              {subValue}
+            </div>
           )}
         </div>
       </div>
