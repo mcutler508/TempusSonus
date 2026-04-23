@@ -166,8 +166,8 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
                   key={isActive ? `active-${idx}` : `idle-${idx}`}
                   className={`
                     relative flex items-center justify-center
-                    w-11 h-14 rounded-lg
-                    font-semibold text-[22px] select-none
+                    w-8 h-11 sm:w-10 sm:h-12 lg:w-11 lg:h-14 rounded-lg
+                    font-semibold text-[16px] sm:text-[19px] lg:text-[22px] select-none
                     transition-[transform,filter] duration-100
                     ${!isRight ? 'italic' : ''}
                     ${isActive ? 'scale-110 -translate-y-1 z-10 animate-ignite' : isAccent ? 'scale-[1.04]' : 'scale-100'}
@@ -224,7 +224,7 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
               {/* Sticking / counting text */}
               {type === 'primary' && (
                 <span
-                  className={`absolute -bottom-7 text-[10px] font-mono font-semibold tracking-[0.15em] transition-colors uppercase ${
+                  className={`absolute -bottom-5 sm:-bottom-7 text-[8px] sm:text-[10px] font-mono font-semibold tracking-[0.1em] sm:tracking-[0.15em] transition-colors uppercase ${
                     isActive ? 'text-[rgb(var(--accent-glow-soft))]' : 'text-zinc-500/70'
                   }`}
                 >
@@ -239,7 +239,7 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
   };
 
   return (
-    <div className="relative w-full max-w-5xl h-64 surface-glass select-none overflow-hidden rounded-2xl mx-4 transition-all duration-500">
+    <div className="relative w-full max-w-full sm:max-w-3xl lg:max-w-5xl h-48 sm:h-56 lg:h-64 surface-glass select-none overflow-hidden rounded-2xl mx-2 sm:mx-4 transition-all duration-500">
       {/* Stationary beat grid */}
       <div className="absolute inset-0 flex w-full h-full pointer-events-none">
         {Array.from({ length: measure.timeSignature.top }).map((_, i) => {
@@ -264,7 +264,7 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
 
               {renderMicroGrid()}
 
-              <span className="absolute top-3 left-3 text-[9px] font-mono font-semibold text-zinc-500/40 dark:text-zinc-500/35 tracking-[0.2em] uppercase">
+              <span className="absolute top-2 left-2 sm:top-3 sm:left-3 text-[8px] sm:text-[9px] font-mono font-semibold text-zinc-500/40 dark:text-zinc-500/35 tracking-[0.15em] sm:tracking-[0.2em] uppercase">
                 {i + 1}
               </span>
             </div>
@@ -273,16 +273,16 @@ export const ScoreConveyor: React.FC<ScoreConveyorProps> = ({
       </div>
 
       {/* Notes */}
-      <div className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 z-20 ${mirrorMode ? 'gap-8' : 'gap-0'}`}>
-        <div className={`relative w-full h-20 transition-all duration-500 ${mirrorMode ? '-translate-y-3' : 'translate-y-0'}`}>
-          <div className={`absolute -left-3 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500 font-mono -rotate-90 origin-right whitespace-nowrap tracking-[0.2em] transition-opacity duration-500 ${mirrorMode ? 'opacity-60' : 'opacity-0'}`}>
+      <div className={`absolute inset-0 flex flex-col justify-center transition-all duration-500 z-20 ${mirrorMode ? 'gap-2 sm:gap-8' : 'gap-0'}`}>
+        <div className={`relative w-full h-16 sm:h-20 transition-all duration-500 ${mirrorMode ? '-translate-y-1 sm:-translate-y-3' : 'translate-y-0'}`}>
+          <div className={`hidden sm:block absolute -left-3 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500 font-mono -rotate-90 origin-right whitespace-nowrap tracking-[0.2em] transition-opacity duration-500 ${mirrorMode ? 'opacity-60' : 'opacity-0'}`}>
             PRIMARY
           </div>
           {renderNoteRow('primary')}
         </div>
 
-        <div className={`relative w-full h-20 transition-all duration-500 ${mirrorMode ? 'opacity-100 translate-y-2' : 'opacity-0 translate-y-10 pointer-events-none absolute bottom-0'}`}>
-          <div className="absolute -left-3 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500 font-mono -rotate-90 origin-right whitespace-nowrap opacity-60 tracking-[0.2em]">
+        <div className={`relative w-full h-16 sm:h-20 transition-all duration-500 ${mirrorMode ? 'opacity-100 translate-y-1 sm:translate-y-2' : 'opacity-0 translate-y-10 pointer-events-none absolute bottom-0'}`}>
+          <div className="hidden sm:block absolute -left-3 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500 font-mono -rotate-90 origin-right whitespace-nowrap opacity-60 tracking-[0.2em]">
             INVERTED
           </div>
           {renderNoteRow('mirror')}

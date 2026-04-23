@@ -202,7 +202,7 @@ const App = () => {
   const textBase = state.theme === 'dark' ? 'text-zinc-100' : 'text-zinc-900';
 
   return (
-    <div className={`relative w-full h-screen flex flex-col items-center py-8 px-4 select-none overflow-hidden ${canvasBg} ${textBase} transition-colors duration-500`}>
+    <div className={`relative w-full min-h-screen lg:h-screen flex flex-col items-center py-4 px-3 sm:py-6 sm:px-4 lg:py-8 select-none overflow-x-hidden overflow-y-auto lg:overflow-hidden ${canvasBg} ${textBase} transition-colors duration-500`}>
 
       {/* 0. FULL-BLEED SHADER HERO BACKGROUND */}
       {state.showBackgroundVisuals && (
@@ -224,14 +224,17 @@ const App = () => {
       <div className="absolute inset-0 pointer-events-none z-[1] dark:bg-[radial-gradient(80%_100%_at_50%_50%,transparent_30%,rgba(0,0,0,0.55)_100%)]" />
 
       {/* 1. HUD HEADER — sits in its own tinted glass shell so it reads against busy shader */}
-      <header className="relative z-10 w-full max-w-7xl flex items-end justify-between pb-6 mb-8 px-6 py-5 rounded-2xl surface-glass">
+      <header className="relative z-10 w-full max-w-7xl flex items-end justify-between pb-4 mb-4 px-4 py-4 rounded-2xl surface-glass sm:pb-6 sm:mb-8 sm:px-6 sm:py-5">
         {/* Score */}
         <div className="flex flex-col gap-1 relative z-10">
           <div className="text-micro text-zinc-500 dark:text-zinc-400">Hand Fitness</div>
           <div className="flex items-baseline gap-4">
             <span
-              className="font-display italic text-[72px] leading-[0.85] text-zinc-900 dark:text-zinc-50"
-              style={{ textShadow: state.theme === 'dark' ? '0 2px 24px rgba(0,0,0,0.6)' : '0 1px 2px rgba(255,255,255,0.8)' }}
+              className="font-display italic leading-[0.85] text-zinc-900 dark:text-zinc-50"
+              style={{
+                fontSize: 'clamp(2.5rem, 11vw, 4.5rem)',
+                textShadow: state.theme === 'dark' ? '0 2px 24px rgba(0,0,0,0.6)' : '0 1px 2px rgba(255,255,255,0.8)'
+              }}
             >
               {userStats.currentScore}
             </span>
@@ -249,25 +252,31 @@ const App = () => {
         </div>
 
         {/* Editorial divider */}
-        <div className="hidden lg:flex flex-1 items-center mx-12 self-end pb-3 relative z-10">
+        <div className="hidden sm:flex flex-1 items-center mx-4 sm:mx-6 lg:mx-12 self-end pb-3 relative z-10">
           <div className="flex-1 h-px bg-gradient-to-r from-transparent via-zinc-400/30 dark:via-white/15 to-transparent"></div>
           <div className="w-1 h-1 rounded-full bg-[rgb(var(--accent-glow))] shadow-[0_0_8px_rgb(var(--accent-glow))] mx-3"></div>
           <div className="flex-1 h-px bg-gradient-to-r from-transparent via-zinc-400/30 dark:via-white/15 to-transparent"></div>
         </div>
 
         {/* Live metrics */}
-        <div className="flex items-baseline gap-10 relative z-10">
+        <div className="flex items-baseline gap-4 sm:gap-6 lg:gap-10 relative z-10">
           <div className="flex flex-col items-start">
-            <span className="text-micro text-zinc-500 dark:text-zinc-400 mb-2">Session</span>
-            <span className="font-display italic text-[40px] leading-none text-zinc-900 dark:text-zinc-50">
+            <span className="text-micro text-zinc-500 dark:text-zinc-400 mb-1 sm:mb-2">Session</span>
+            <span
+              className="font-display italic leading-none text-zinc-900 dark:text-zinc-50"
+              style={{ fontSize: 'clamp(1.5rem, 6.5vw, 2.5rem)' }}
+            >
               {formatTime(sessionTime)}
             </span>
           </div>
           <div className="flex flex-col items-start">
-            <span className="text-micro text-zinc-500 dark:text-zinc-400 mb-2">BPM</span>
-            <span className={`font-display italic text-[40px] leading-none transition-colors ${
-              state.isPlaying ? 'text-[rgb(var(--accent-glow))]' : 'text-zinc-900 dark:text-zinc-50'
-            } ${isBpmPending ? 'animate-pulse opacity-60' : ''}`}>
+            <span className="text-micro text-zinc-500 dark:text-zinc-400 mb-1 sm:mb-2">BPM</span>
+            <span
+              className={`font-display italic leading-none transition-colors ${
+                state.isPlaying ? 'text-[rgb(var(--accent-glow))]' : 'text-zinc-900 dark:text-zinc-50'
+              } ${isBpmPending ? 'animate-pulse opacity-60' : ''}`}
+              style={{ fontSize: 'clamp(1.5rem, 6.5vw, 2.5rem)' }}
+            >
               {state.bpm}
             </span>
           </div>
@@ -279,7 +288,7 @@ const App = () => {
 
         {/* SETTINGS OVERLAY */}
         {showSettings && (
-          <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="fixed sm:absolute inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-[2px] sm:backdrop-blur-md animate-in fade-in duration-200">
             <SettingsView
               currentTheme={state.theme}
               showBackgroundVisuals={state.showBackgroundVisuals}
@@ -302,8 +311,11 @@ const App = () => {
             <div className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-[3px] bg-black/40 rounded-2xl">
               <div
                 key={countDownValue}
-                className="font-display italic text-[180px] leading-none text-[rgb(var(--accent-glow))] animate-countdown-in"
-                style={{ textShadow: '0 0 60px rgb(var(--accent-glow) / 0.7), 0 0 120px rgb(var(--accent-glow) / 0.35)' }}
+                className="font-display italic leading-none text-[rgb(var(--accent-glow))] animate-countdown-in"
+                style={{
+                  fontSize: 'clamp(5rem, 28vw, 11.25rem)',
+                  textShadow: '0 0 60px rgb(var(--accent-glow) / 0.7), 0 0 120px rgb(var(--accent-glow) / 0.35)'
+                }}
               >
                 {countDownValue}
               </div>
@@ -311,12 +323,12 @@ const App = () => {
           )}
 
           {/* Active Pattern Info — chipified so it reads against busy shader */}
-          <div className="mb-7 flex items-center gap-3 token-chip rounded-full px-4 py-2">
-            <span className="text-micro text-zinc-500 dark:text-zinc-400">{state.timeSignature.name}</span>
-            <span className="w-px h-3 bg-zinc-300/50 dark:bg-white/15"></span>
-            <span className="text-micro text-zinc-500 dark:text-zinc-400">{SUBDIVISIONS.find(s => s.value === state.subdivision)?.label} Grid</span>
-            <span className="w-px h-3 bg-zinc-300/50 dark:bg-white/15"></span>
-            <span className="font-display italic text-[20px] leading-none text-zinc-900 dark:text-zinc-50 tracking-tight pb-0.5">{currentRudimentName}</span>
+          <div className="mb-3 sm:mb-5 lg:mb-7 flex items-center gap-2 sm:gap-3 token-chip rounded-full px-3 sm:px-4 py-1.5 sm:py-2 max-w-full">
+            <span className="text-micro text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{state.timeSignature.name}</span>
+            <span className="w-px h-3 bg-zinc-300/50 dark:bg-white/15 shrink-0"></span>
+            <span className="text-micro text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{SUBDIVISIONS.find(s => s.value === state.subdivision)?.label} Grid</span>
+            <span className="w-px h-3 bg-zinc-300/50 dark:bg-white/15 shrink-0"></span>
+            <span className="font-display italic text-base sm:text-lg lg:text-[20px] leading-none text-zinc-900 dark:text-zinc-50 tracking-tight pb-0.5 truncate">{currentRudimentName}</span>
           </div>
 
           <div className={`w-full flex justify-center transition-all duration-300 ${countDownValue !== null ? "opacity-30 blur-sm" : ""}`}>
@@ -331,17 +343,19 @@ const App = () => {
         </main>
 
         {/* CONTROL CONSOLE — glass panel so it reads against shader */}
-        <footer className={`w-full mt-10 transition-opacity duration-300 ${showSettings ? 'opacity-20 blur-sm pointer-events-none' : 'opacity-100'}`}>
+        <footer className={`w-full mt-4 sm:mt-6 lg:mt-10 transition-opacity duration-300 ${showSettings ? 'opacity-20 blur-sm pointer-events-none' : 'opacity-100'}`}>
 
           {/* Dials Row */}
-          <div className="relative surface-glass rounded-2xl grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6 lg:gap-8 px-6 lg:px-8 py-6 justify-items-center">
-            <TempoDial
-              label="Tempo"
-              value={state.bpm}
-              onChange={setBpm}
-              subValue="BPM"
-              isPending={isBpmPending}
-            />
+          <div className="relative surface-glass rounded-2xl grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-5 lg:gap-8 px-3 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-6 justify-items-center">
+            <div className="col-span-3 sm:col-span-4 lg:col-span-1 flex justify-center w-full">
+              <TempoDial
+                label="Tempo"
+                value={state.bpm}
+                onChange={setBpm}
+                subValue="BPM"
+                isPending={isBpmPending}
+              />
+            </div>
             <ControlDial
               label="Time Sig"
               value={state.timeSignature.name}
@@ -383,10 +397,11 @@ const App = () => {
           </div>
 
           {/* Action Bar */}
-          <div className="flex items-center justify-center gap-8 mt-8">
+          <div className="flex items-center justify-center gap-6 sm:gap-8 mt-5 sm:mt-8">
             <button
               onClick={resetSession}
-              className="p-3 rounded-full text-zinc-400 hover:text-white hover:bg-white/5 transition-all ring-1 ring-transparent hover:ring-white/10 focus-visible:outline-none focus-visible:ring-[rgb(var(--accent-glow))]"
+              className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-zinc-400 hover:text-white hover:bg-white/5 active:text-white active:bg-white/10 transition-all ring-1 ring-transparent hover:ring-white/10 focus-visible:outline-none focus-visible:ring-[rgb(var(--accent-glow))]"
+              aria-label="Reset Session"
               title="Reset Session"
             >
               <RotateCcw className="w-5 h-5" />
@@ -435,7 +450,8 @@ const App = () => {
 
             <button
               onClick={() => setShowSettings(true)}
-              className="p-3 rounded-full text-zinc-400 hover:text-white hover:bg-white/5 transition-all ring-1 ring-transparent hover:ring-white/10 focus-visible:outline-none focus-visible:ring-[rgb(var(--accent-glow))]"
+              className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-zinc-400 hover:text-white hover:bg-white/5 active:text-white active:bg-white/10 transition-all ring-1 ring-transparent hover:ring-white/10 focus-visible:outline-none focus-visible:ring-[rgb(var(--accent-glow))]"
+              aria-label="Settings"
               title="Settings"
             >
               <Settings2 className="w-5 h-5" />

@@ -71,13 +71,13 @@ export const ControlSlider: React.FC<ControlSliderProps> = ({ label, value, onCh
   const Icon = progress === 0 ? VolumeX : Volume2;
 
   return (
-    <div className="flex flex-col items-center gap-3 group select-none">
+    <div className="flex flex-col items-center gap-2 sm:gap-3 group select-none">
       <div className={`text-micro transition-colors ${isDragging ? 'text-[rgb(var(--accent-glow))]' : 'text-zinc-500 group-hover:text-[rgb(var(--accent-glow))]'}`}>
         {label}
       </div>
 
       <div
-        className="relative flex items-center justify-center w-[88px] h-[88px] rounded-full touch-none cursor-ns-resize"
+        className="relative flex items-center justify-center w-[72px] h-[72px] sm:w-20 sm:h-20 lg:w-[88px] lg:h-[88px] rounded-full touch-none cursor-ns-resize"
         onMouseDown={handleStart}
         onTouchStart={handleStart}
         title={`Volume: ${pct}%`}

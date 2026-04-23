@@ -28,22 +28,31 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const intensityPct = Math.round(visualIntensity * 100);
   return (
-    <div className="w-full max-w-2xl mx-auto surface-glass rounded-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-8 relative">
+    <div
+      className="w-full max-w-full sm:max-w-2xl sm:mx-auto surface-glass overflow-y-auto sm:overflow-hidden animate-in fade-in zoom-in-95 duration-200 p-5 sm:p-8 relative rounded-t-2xl sm:rounded-2xl max-h-[90vh] sm:max-h-none"
+      style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+    >
+      {/* Mobile drag handle */}
+      <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-zinc-300 dark:bg-zinc-700 sm:hidden" />
+
       <button
         onClick={onClose}
-        className="absolute top-6 right-6 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
+        className="absolute top-4 right-4 sm:top-6 sm:right-6 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white active:text-zinc-900 dark:active:text-white transition-colors p-2 -m-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
       >
         <X size={22} />
       </button>
 
-      <div className="flex items-baseline gap-3 mb-8">
+      <div className="flex items-baseline gap-3 mb-5 sm:mb-8">
         <div className="text-micro text-zinc-500 dark:text-zinc-400">Console</div>
-        <h2 className="font-display italic text-[40px] leading-none text-zinc-900 dark:text-zinc-50">Settings</h2>
+        <h2
+          className="font-display italic leading-none text-zinc-900 dark:text-zinc-50"
+          style={{ fontSize: 'clamp(1.75rem, 7vw, 2.5rem)' }}
+        >Settings</h2>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-5 sm:space-y-8">
         <section>
-          <h3 className="text-micro text-zinc-500 dark:text-zinc-400 mb-4">Appearance</h3>
+          <h3 className="text-micro text-zinc-500 dark:text-zinc-400 mb-3 sm:mb-4">Appearance</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
             <button
@@ -164,10 +173,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </section>
       </div>
 
-      <div className="mt-8 pt-6 border-t border-zinc-300/30 dark:border-white/10 flex justify-end">
+      <div className="mt-5 pt-4 sm:mt-8 sm:pt-6 border-t border-zinc-300/30 dark:border-white/10 flex justify-end">
         <button
           onClick={onClose}
-          className="px-6 py-2 rounded-lg font-semibold text-black transition-transform hover:scale-[1.02]"
+          className="px-6 py-3 sm:py-2 min-h-[44px] rounded-lg font-semibold text-black transition-transform hover:scale-[1.02] active:scale-[0.98]"
           style={{
             background: 'radial-gradient(circle at 30% 25%, rgb(var(--accent-glow-soft)), rgb(var(--accent-glow)) 60%)',
             boxShadow: '0 4px 14px -2px rgb(var(--accent-glow) / 0.5)',

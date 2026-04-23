@@ -8,7 +8,7 @@ interface ControlToggleProps {
 
 export const ControlToggle: React.FC<ControlToggleProps> = ({ label, isChecked, onToggle }) => {
   return (
-    <div className="flex flex-col items-center gap-3 group cursor-pointer select-none" onClick={onToggle}>
+    <div className="flex flex-col items-center gap-2 sm:gap-3 group cursor-pointer select-none" onClick={onToggle}>
       {label && (
         <div className="text-micro text-zinc-500 group-hover:text-[rgb(var(--accent-glow))] transition-colors">
           {label}

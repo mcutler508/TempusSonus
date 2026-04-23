@@ -13,12 +13,12 @@ const TICK_COUNT = 24;
 
 export const ControlDial: React.FC<ControlDialProps> = ({ label, value, onIncrease, onDecrease, subValue }) => {
   return (
-    <div className="flex flex-col items-center gap-3 group">
+    <div className="flex flex-col items-center gap-2 sm:gap-3 group">
       <div className="text-micro text-zinc-500 dark:text-zinc-500 group-hover:text-[rgb(var(--accent-glow))] transition-colors">
         {label}
       </div>
 
-      <div className="relative flex items-center justify-center w-[88px] h-[88px] rounded-full select-none">
+      <div className="relative flex items-center justify-center w-[72px] h-[72px] sm:w-20 sm:h-20 lg:w-[88px] lg:h-[88px] rounded-full select-none">
         {/* Recessed well behind cap */}
         <div className="absolute inset-0 rounded-full surface-recessed"></div>
 
@@ -74,7 +74,7 @@ export const ControlDial: React.FC<ControlDialProps> = ({ label, value, onIncrea
 
         {/* Display */}
         <div className="relative z-20 text-center pointer-events-none px-1">
-          <div className="font-display italic text-[26px] leading-none text-zinc-900 dark:text-zinc-50">
+          <div className="font-display italic text-[20px] sm:text-[22px] lg:text-[26px] leading-none text-zinc-900 dark:text-zinc-50">
             {value}
           </div>
           {subValue && (

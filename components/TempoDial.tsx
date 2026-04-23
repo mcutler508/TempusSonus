@@ -85,7 +85,7 @@ export const TempoDial: React.FC<TempoDialProps> = ({
   const arcDash = (arcLength / 360) * arcCircumference;
 
   return (
-    <div className="flex flex-col items-center gap-3 group select-none">
+    <div className="flex flex-col items-center gap-2 sm:gap-3 group select-none">
       <div className={`text-micro transition-colors ${isDragging ? 'text-[rgb(var(--accent-glow))]' : 'text-zinc-500 group-hover:text-[rgb(var(--accent-glow))]'}`}>
         {label}
       </div>
